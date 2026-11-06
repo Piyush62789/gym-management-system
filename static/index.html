@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Gym Management System</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h2>APEX FITNESS</h2>
+          <span>MANAGEMENT SUITE</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <span class="icon">📊</span>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="members">
+          <span class="icon">👥</span>
+          <span>Members</span>
+        </button>
+        <button class="nav-item" data-tab="plans">
+          <span class="icon">🏷️</span>
+          <span>Membership Plans</span>
+        </button>
+        <button class="nav-item" data-tab="subscriptions">
+          <span class="icon">💳</span>
+          <span>Subscriptions</span>
+        </button>
+        <button class="nav-item" data-tab="trainers">
+          <span class="icon">🏋️</span>
+          <span>Trainers</span>
+        </button>
+        <button class="nav-item" data-tab="classes">
+          <span class="icon">📅</span>
+          <span>Classes & Bookings</span>
+        </button>
+        <button class="nav-item" data-tab="attendance">
+          <span class="icon">🕒</span>
+          <span>Attendance</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="status-indicator online" id="server-status-dot"></div>
+          <div class="status-info">
+            <span class="label">API Engine</span>
+            <span class="val" id="server-status-text">Connecting...</span>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn btn-secondary btn-sm w-100" id="btn-seed-data" title="Seed realistic test members, plans, and classes">
+            ⚡ Seed Demo Data
+          </button>
+          <a href="/docs" target="_blank" class="btn btn-outline btn-sm w-100">
+            📖 Swagger Docs
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 id="page-title">Dashboard Overview</h1>
+          <p id="page-subtitle">Real-time gym performance and member activity</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="user-profile-widget" id="user-profile-widget">
+            <div class="user-avatar-pill" id="user-avatar">A</div>
+            <div class="user-info-text">
+              <span class="user-name" id="user-display-name">Admin</span>
+              <span class="user-role" id="user-display-role">Administrator</span>
+            </div>
+            <button class="btn-logout-icon" id="btn-sign-out" title="Sign Out">🚪</button>
+          </div>
+          <button class="btn btn-primary" id="btn-quick-checkin">
+            <span>⚡ Quick Check-in</span>
+          </button>
+          <button class="btn btn-accent" id="btn-header-action">
+            <span>+ Add Member</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Toast Notification Container -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- Tab: Dashboard -->
+      <section id="tab-dashboard" class="tab-content active">
+        <!-- Metric KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon blue">👥</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Members</span>
+              <h3 class="kpi-value" id="kpi-total-members">-</h3>
+              <span class="kpi-meta"><span id="kpi-active-members">-</span> Active Members</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon green">💳</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Active Subscriptions</span>
+              <h3 class="kpi-value" id="kpi-active-subs">-</h3>
+              <span class="kpi-meta text-success">Ongoing memberships</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon amber">💰</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Revenue</span>
+              <h3 class="kpi-value" id="kpi-revenue">$0.00</h3>
+              <span class="kpi-meta">Subscriptions sum</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon purple">🕒</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Today's Check-ins</span>
+              <h3 class="kpi-value" id="kpi-checkins">-</h3>
+              <span class="kpi-meta">Gym entries today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Athlete Telemetry & Live Workout Tracking -->
+        <div class="telemetry-section mb-4">
+          <div class="section-heading mb-3">
+            <div>
+              <h3>Daily Athlete Telemetry</h3>
+              <p class="text-muted">Live workout of the day (WOD) programming & biometric progress rings</p>
+            </div>
+            <span class="badge badge-active">Live Sync</span>
+          </div>
+
+          <div class="telemetry-grid">
+            <!-- 1. Workout Card Component -->
+            <div class="workout-card-container">
+              <div class="workout-card">
+                <div class="workout-header">
+                  <p class="workout-date" id="wod-date">Today's Session</p>
+                  <h2 class="workout-wod-title">WOD • SPARTAN BURN</h2>
+                </div>
+                <div class="workout-main-card">
+                  <div class="workout-session-header">
+                    <h3 class="workout-session-title">Cardio & Core Conditioning</h3>
+                    <div class="workout-duration-badge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <span>45 min</span>
+                    </div>
+                  </div>
+                  <ul class="workout-exercise-list">
+                    <li class="exercise-item">
+                      <div class="exercise-icon-wrap">
+                        <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=100&auto=format&fit=crop&q=60" alt="Jumping Jacks">
+                      </div>
+                      <div>
+                        <p class="exercise-name">Jumping Jacks</p>
+                        <p class="exercise-detail">2 minutes continuous pace</p>
+                      </div>
+                    </li>
+                    <li class="exercise-item">
+                      <div class="exercise-icon-wrap">
+                        <img src="https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=100&auto=format&fit=crop&q=60" alt="High Knees">
+                      </div>
+                      <div>
+                        <p class="exercise-name">High Knees</p>
+                        <p class="exercise-detail">4 rounds x 45s interval</p>
+                      </div>
+                    </li>
+                    <li class="exercise-item">
+                      <div class="exercise-icon-wrap">
+                        <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100&auto=format&fit=crop&q=60" alt="Bicycle Crunches">
+                      </div>
+                      <div>
+                        <p class="exercise-name">Bicycle Crunches</p>
+                        <p class="exercise-detail">20 reps each side</p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Activity Card Component -->
+            <div class="activity-card-container">
+              <div class="activity-card">
+                <div class="activity-header">
+                  <div class="activity-icon-badge">
+                    <span style="color:#FF2D55; font-size:16px;">📈</span>
+                  </div>
+                  <div>
+                    <h3 class="activity-title">Today's Progress</h3>
+                    <p class="activity-category">Activity Biometrics</p>
+                  </div>
+                </div>
+
+                <!-- Rings -->
+                <div class="activity-rings-grid">
+                  <div class="activity-ring-item">
+                    <div class="ring-circle" style="--ring-color:#FF2D55; --ring-progress:85%;">
+                      <div class="ring-inner">
+                        <span class="ring-val">540</span>
+                        <span class="ring-unit">cal</span>
+                      </div>
+                    </div>
+                    <span class="ring-label">Move</span>
+                    <span class="ring-trend">85%</span>
+                  </div>
+
+                  <div class="activity-ring-item">
+                    <div class="ring-circle" style="--ring-color:#2CD758; --ring-progress:70%;">
+                      <div class="ring-inner">
+                        <span class="ring-val">42</span>
+                        <span class="ring-unit">min</span>
+                      </div>
+                    </div>
+                    <span class="ring-label">Exercise</span>
+                    <span class="ring-trend">70%</span>
+                  </div>
+
+                  <div class="activity-ring-item">
+                    <div class="ring-circle" style="--ring-color:#007AFF; --ring-progress:92%;">
+                      <div class="ring-inner">
+                        <span class="ring-val">11</span>
+                        <span class="ring-unit">hrs</span>
+                      </div>
+                    </div>
+                    <span class="ring-label">Stand</span>
+                    <span class="ring-trend">92%</span>
+                  </div>
+                </div>
+
+                <!-- Goals Section -->
+                <div class="activity-goals-section">
+                  <div class="goals-header">
+                    <h4>🎯 Today's Goals</h4>
+                    <button class="btn-icon-xs" onclick="addCustomGoal()" title="Add Target">+</button>
+                  </div>
+                  <div class="goals-list" id="activity-goals-list">
+                    <button type="button" class="goal-item completed" onclick="toggleGoal(this)">
+                      <span class="goal-check">✓</span>
+                      <span class="goal-text">30min Morning HIIT with Coach Elena</span>
+                    </button>
+                    <button type="button" class="goal-item completed" onclick="toggleGoal(this)">
+                      <span class="goal-check">✓</span>
+                      <span class="goal-text">10,000 Steps Target</span>
+                    </button>
+                    <button type="button" class="goal-item" onclick="toggleGoal(this)">
+                      <span class="goal-check">○</span>
+                      <span class="goal-text">Drink 2.5L Water throughout day</span>
+                    </button>
+                  </div>
+                  <div class="goals-footer">
+                    <a href="#details" onclick="alert('Viewing comprehensive biometric telemetry.'); return false;" class="link-activity-details">
+                      View Activity Details &rarr;
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Content Grid -->
+        <div class="dashboard-grid">
+          <!-- Recent Activity & Check-in Widget -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>Live Gym Check-in Log</h3>
+                <span>Recent member arrivals</span>
+              </div>
+              <button class="btn btn-sm btn-outline" onclick="loadAttendance()">Refresh</button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Member ID</th>
+                      <th>Check-in Time</th>
+                      <th>Check-out</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dash-attendance-tbody">
+                    <tr><td colspan="4" class="text-center text-muted">Loading attendance...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming Classes Widget -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>Scheduled Classes</h3>
+                <span>Next available fitness sessions</span>
+              </div>
+              <button class="btn btn-sm btn-outline" onclick="loadClasses()">View All</button>
+            </div>
+            <div class="card-body">
+              <div id="dash-classes-list" class="classes-mini-list">
+                <div class="text-center text-muted">Loading schedule...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab: Members -->
+      <section id="tab-members" class="tab-content">
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="member-search-input" placeholder="Search by name, email, or phone...">
+          </div>
+          <div class="filters">
+            <select id="member-status-filter" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="true">Active Members Only</option>
+              <option value="false">Inactive Members Only</option>
+            </select>
+            <button class="btn btn-primary" onclick="openModal('modal-add-member')">+ Add Member</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Gender</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="members-tbody">
+                  <tr><td colspan="7" class="text-center text-muted">Loading members...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab: Plans -->
+      <section id="tab-plans" class="tab-content">
+        <div class="toolbar justify-between">
+          <div>
+            <h3>Membership Tiers</h3>
+            <p class="text-muted">Available gym access and pricing plans</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-plan')">+ New Plan</button>
+        </div>
+
+        <div class="plans-grid" id="plans-container">
+          <div class="text-center text-muted col-span-3">Loading membership plans...</div>
+        </div>
+      </section>
+
+      <!-- Tab: Subscriptions -->
+      <section id="tab-subscriptions" class="tab-content">
+        <div class="toolbar justify-between">
+          <div class="filters">
+            <select id="sub-status-filter" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-subscription')">+ Assign Subscription</button>
+        </div>
+
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sub ID</th>
+                    <th>Member ID</th>
+                    <th>Plan</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="subs-tbody">
+                  <tr><td colspan="8" class="text-center text-muted">Loading subscriptions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab: Trainers -->
+      <section id="tab-trainers" class="tab-content">
+        <div class="toolbar justify-between">
+          <div class="filters">
+            <input type="text" id="trainer-search-input" placeholder="Search specialization..." class="form-input">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-trainer')">+ Register Trainer</button>
+        </div>
+
+        <div class="trainers-grid" id="trainers-container">
+          <div class="text-center text-muted col-span-3">Loading trainers...</div>
+        </div>
+      </section>
+
+      <!-- Tab: Classes -->
+      <section id="tab-classes" class="tab-content">
+        <div class="toolbar justify-between">
+          <div>
+            <h3>Fitness Classes & Reservations</h3>
+            <p class="text-muted">Manage group workouts, schedules, and attendee capacity</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-class')">+ Schedule Class</button>
+        </div>
+
+        <div class="classes-grid" id="classes-container">
+          <div class="text-center text-muted col-span-3">Loading classes...</div>
+        </div>
+      </section>
+
+      <!-- Tab: Attendance -->
+      <section id="tab-attendance" class="tab-content">
+        <div class="attendance-top-grid">
+          <!-- Check-in card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>Fast Check-in Terminal</h3>
+                <span>Record member entry by Member ID</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="form-terminal-checkin" class="terminal-form">
+                <div class="form-group mb-3">
+                  <label>Member ID</label>
+                  <input type="number" id="terminal-member-id" class="form-input text-lg" placeholder="e.g. 1" required min="1">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 btn-lg">Record Check-in</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Quick instructions -->
+          <div class="card bg-subtle">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>Gym Access Rules</h3>
+                <span>Front-desk operational notes</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <ul class="bullet-list">
+                <li>Verify that members have an active subscription before issuing guest passes.</li>
+                <li>Members must check out at reception upon exiting the facility.</li>
+                <li>Group fitness bookings automatically lock 5 minutes prior to session start.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Attendance Log</h3>
+              <span>Detailed entry and exit records</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="loadAttendance()">Refresh Log</button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Log ID</th>
+                    <th>Member ID</th>
+                    <th>Check-in Date & Time</th>
+                    <th>Check-out Date & Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="attendance-tbody">
+                  <tr><td colspan="6" class="text-center text-muted">Loading attendance...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal: Add Member -->
+  <div id="modal-add-member" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Register New Member</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-member')">&times;</button>
+      </div>
+      <form id="form-add-member">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name *</label>
+              <input type="text" name="first_name" required class="form-input" placeholder="e.g. John">
+            </div>
+            <div class="form-group">
+              <label>Last Name *</label>
+              <input type="text" name="last_name" required class="form-input" placeholder="e.g. Doe">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" name="email" required class="form-input" placeholder="john.doe@example.com">
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" name="phone" required class="form-input" placeholder="+1-555-0199">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gender</label>
+              <select name="gender" class="form-select">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" name="date_of_birth" class="form-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Emergency Contact</label>
+            <input type="text" name="emergency_contact" class="form-input" placeholder="Name & Phone">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-member')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Plan -->
+  <div id="modal-add-plan" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create Membership Plan</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-plan')">&times;</button>
+      </div>
+      <form id="form-add-plan">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Plan Name *</label>
+            <input type="text" name="name" required class="form-input" placeholder="e.g. Gold Tier Access">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" class="form-textarea" placeholder="List benefits, facilities included..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Duration (Days) *</label>
+              <input type="number" name="duration_days" required min="1" class="form-input" placeholder="30">
+            </div>
+            <div class="form-group">
+              <label>Price ($) *</label>
+              <input type="number" step="0.01" name="price" required min="0" class="form-input" placeholder="49.99">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-plan')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Plan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Subscription -->
+  <div id="modal-add-subscription" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Assign Member Subscription</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-subscription')">&times;</button>
+      </div>
+      <form id="form-add-subscription">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Member *</label>
+            <select name="member_id" id="sub-select-member" required class="form-select">
+              <option value="">Select a member...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Membership Plan *</label>
+            <select name="plan_id" id="sub-select-plan" required class="form-select">
+              <option value="">Select a plan...</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" name="start_date" id="sub-start-date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Custom Fee ($) (Optional)</label>
+              <input type="number" step="0.01" name="amount_paid" class="form-input" placeholder="Leave empty for plan price">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-subscription')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Subscription</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Trainer -->
+  <div id="modal-add-trainer" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Fitness Trainer</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-trainer')">&times;</button>
+      </div>
+      <form id="form-add-trainer">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name *</label>
+              <input type="text" name="first_name" required class="form-input" placeholder="e.g. Alex">
+            </div>
+            <div class="form-group">
+              <label>Last Name *</label>
+              <input type="text" name="last_name" required class="form-input" placeholder="e.g. Rivera">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" name="email" required class="form-input" placeholder="alex.rivera@gym.com">
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" name="phone" required class="form-input" placeholder="+1-555-0144">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Specialization *</label>
+              <input type="text" name="specialization" required class="form-input" placeholder="e.g. HIIT & Strength">
+            </div>
+            <div class="form-group">
+              <label>Hourly Rate ($)</label>
+              <input type="number" step="0.01" name="hourly_rate" min="0" class="form-input" placeholder="50.00">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-trainer')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Trainer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Class -->
+  <div id="modal-add-class" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Schedule Group Class</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-class')">&times;</button>
+      </div>
+      <form id="form-add-class">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Class Title *</label>
+            <input type="text" name="title" required class="form-input" placeholder="e.g. Morning CrossFit">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" class="form-textarea" placeholder="Class highlights, equipment needed..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Assigned Trainer</label>
+            <select name="trainer_id" id="class-select-trainer" class="form-select">
+              <option value="">No trainer assigned</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date & Time *</label>
+            <input type="datetime-local" name="schedule_time" required class="form-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Duration (Minutes) *</label>
+              <input type="number" name="duration_minutes" required value="60" min="15" max="360" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Capacity (Persons) *</label>
+              <input type="number" name="capacity" required value="20" min="1" max="100" class="form-input">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-class')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Schedule Class</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Book Class -->
+  <div id="modal-book-class" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="book-class-title">Book Spot in Class</h3>
+        <button class="modal-close" onclick="closeModal('modal-book-class')">&times;</button>
+      </div>
+      <form id="form-book-class">
+        <input type="hidden" id="book-class-id" name="class_id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Select Member *</label>
+            <select id="book-select-member" name="member_id" required class="form-select">
+              <option value="">Select member to enroll...</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-book-class')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Reservation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Member Detail Drawer -->
+  <div id="modal-member-detail" class="modal-backdrop">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="detail-member-name">Member Profile</h3>
+        <button class="modal-close" onclick="closeModal('modal-member-detail')">&times;</button>
+      </div>
+      <div class="modal-body" id="detail-member-body">
+        <div class="text-center text-muted">Loading profile...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Login Screen / Auth Gate -->
+  <div id="modal-login-gate" class="modal-backdrop login-backdrop">
+    <div class="modal modal-login">
+      <div class="login-header-hero">
+        <div class="login-brand-icon">⚡</div>
+        <h2>APEX FITNESS</h2>
+        <p>Enterprise Gym & Biometrics Management Portal</p>
+      </div>
+
+      <div class="role-selector-pills">
+        <button type="button" class="role-pill active" data-role="admin" onclick="switchLoginRole('admin')">
+          🛡️ Admin
+        </button>
+        <button type="button" class="role-pill" data-role="staff" onclick="switchLoginRole('staff')">
+          📋 Staff
+        </button>
+        <button type="button" class="role-pill" data-role="member" onclick="switchLoginRole('member')">
+          🏋️ Member
+        </button>
+      </div>
+
+      <form id="form-login-auth" class="login-form">
+        <div class="form-group mb-3">
+          <label>Email Address</label>
+          <input type="email" id="login-email" required class="form-input" value="admin@apexfitness.com">
+        </div>
+        <div class="form-group mb-3">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>Password</label>
+            <a href="#forgot" onclick="alert('Contact the gym administrator to reset access credentials.'); return false;" style="font-size:11px; color:#38bdf8; text-decoration:none;">Forgot?</a>
+          </div>
+          <input type="password" id="login-password" required class="form-input" value="ApexAdmin2026!">
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:12px; color:var(--text-muted);">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="login-remember" checked>
+            <span>Remember terminal</span>
+          </label>
+          <span style="color:#10b981; font-weight:600;">🔒 256-bit SSL</span>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 btn-lg" id="btn-submit-login">
+          Sign In to Portal &rarr;
+        </button>
+      </form>
+
+      <div class="login-footer-hint">
+        <span>Active role: <strong id="login-active-role-text">Administrator</strong>. Click any role tab above to autofill credentials.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
